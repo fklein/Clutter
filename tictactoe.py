@@ -9,7 +9,7 @@ The module also features an advanced computer opponent that supports
 different difficulty levels ranging from "very simple" to "the perfect player".
 
 If the module is started as a standalone programm, it will run a console
-based version of the game. The module can however also be imported as an 
+based version of the game. The module can however also be imported as an
 API to created customized versions of the game. The data model behind the game,
 the game rules and a computer controlled player are all included in the module.
 All that has to be done is to subclass the "Player" class to interact with a
@@ -281,7 +281,7 @@ class AiPlayer(Player):
               However the remaining free cell can not be one of the opponent's fork
               possibilities, as this would give the opponent the ability to defend
               AND fork at the same time.
-           b) BLOCK MOVE: Move to the cell, blocking the opponent. Obviously this 
+           b) BLOCK MOVE: Move to the cell, blocking the opponent. Obviously this
               does not work if the opponent has multiple ways to fork.
         5) CENTER: Move to the center.
         6) OPPOSITE CORNER: If the opponent is in a corner, move to the cell on
@@ -448,7 +448,7 @@ class AiPlayer(Player):
                 cells[b] += 1
                 cells[c] += 1
         forks = [cell for cell, count in cells.items() if count > 1]
-        return forks 
+        return forks
 
     def move_center (self, board):
         """Return the center cell if it is free."""
@@ -528,7 +528,7 @@ class TicTacToe(object):
     This class implements the games basic rules. Two players take alternating
     turns placing their markers on the game board. This continues until either
     one of the players has won or there are no more free cells left.
-    
+
     """
     def __init__(self, player1, player2):
         """Initialize a new game."""
@@ -580,32 +580,32 @@ class TicTacToe(object):
 
 class CallbackHandler(object, metaclass=ABCMeta):
     """An abstract callback handler for the game.
-    
+
     This class can be subclassed to implement custom callback handlers
     for the game. A handler may supply up to four different methods that will
     be called at various points during the game.
-    
+
     """
-    
+
     def __init__(self):
         """Initialize the callback handler."""
         super(CallbackHandler, self).__init__()
-        
+
     @abstractmethod
     def pre_game_hook(self, game, board, players):
         """This method is called before a game starts."""
         pass
-        
+
     @abstractmethod
     def post_game_hook(self, game, board, players, winner):
         """This method is called once a game ends."""
         pass
-        
+
     @abstractmethod
     def pre_move_hook(self, game, board, players, currentplayer):
         """This method is called before every move by any player."""
         pass
-        
+
     @abstractmethod
     def post_move_hook(self, game, board, players, currentplayer, move):
         """This method is be called after every move."""
@@ -614,7 +614,7 @@ class CallbackHandler(object, metaclass=ABCMeta):
 
 if __name__ == '__main__':
     def print_message(message):
-        print()  
+        print()
         print("*" * (len(message) + 4))
         print("* " + message + " *")
         print("*" * (len(message) + 4))
@@ -624,7 +624,7 @@ if __name__ == '__main__':
         """A callback handler that displays the boards state after a game ends."""
         def pre_game_hook(self, game, board, players):
             pass
-            
+
         def post_game_hook(self, game, board, players, winner):
             if winner:
                 if isinstance(winner, ConsolePlayer):
@@ -637,10 +637,10 @@ if __name__ == '__main__':
                 print_message("Draw!")
             print(board)
             print()
-            
+
         def pre_move_hook(self, game, board, players, current):
             pass
-        
+
         def post_move_hook(self, game, board, players, current, move):
             pass
 
@@ -679,7 +679,7 @@ if __name__ == '__main__':
                 " n) Start a new game",
                 " q) Quit"]
             print("\n".join(question))
-            new_game = None            
+            new_game = None
             while new_game not in ('r', 'n', 'q'):
                 new_game = input("? ").lower()
             if new_game == 'q' or new_game == 'n':
