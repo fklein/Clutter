@@ -312,7 +312,7 @@ class AiPlayer(Player):
     def next_move(self, board):
         """Calculate the player's next move based on the diffculty level.
 
-        The method returns the index of the cell  for the next move.
+        The method returns the index of the cell for the next move.
         As the algorithm incorporates some randomization the value returned
         is not neccessarily the same every time the method is called.
 
@@ -362,7 +362,7 @@ class AiPlayer(Player):
         # Call all defined functions for difficulty level until a valid move is found.
         for func in difficulty[self.level]:
             move = func(board)
-            if move != None:
+            if move:
                 return move
         return None
 
