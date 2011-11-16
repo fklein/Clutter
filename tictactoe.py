@@ -234,7 +234,6 @@ class Player(object, metaclass=ABCMeta):
     A Players symbol can be either "X" or "O".
 
     """
-
     def __init__(self, symbol):
         """Initialize the new player."""
         if symbol not in ['X', 'O']:
@@ -303,10 +302,10 @@ class AiPlayer(Player):
     def make_move(self, board):
         """Determine the next move and execute it."""
         move = self.next_move(board)
-        if not move is None:
+        if move is not None:
             board[move] = self.symbol
         else:
-            raise PlayerAbortException("None move found.")
+            raise PlayerAbortException("No valid move found.")
         return move
 
     def next_move(self, board):
@@ -362,7 +361,7 @@ class AiPlayer(Player):
         # Call all defined functions for difficulty level until a valid move is found.
         for func in difficulty[self.level]:
             move = func(board)
-            if move:
+            if move is not None:
                 return move
         return None
 
@@ -586,7 +585,6 @@ class CallbackHandler(object, metaclass=ABCMeta):
     be called at various points during the game.
 
     """
-
     def __init__(self):
         """Initialize the callback handler."""
         super(CallbackHandler, self).__init__()
