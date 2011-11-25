@@ -54,7 +54,6 @@ class Console(object):
         """Write a fatal error message."""
         self.write(Console.FATAL, *values, stream=sys.stderr)
 
-
 # Create a new global default console
 console = Console(Console.DEBUG)
 
@@ -72,7 +71,7 @@ class _CRC32Hash(object):
         self.digest_size = self.digestsize
         self._datachunks = []
         if data:
-        	self.update(data)
+            self.update(data)
 
     def update(self, data):
         """Update the digest with an additional string."""
@@ -89,12 +88,12 @@ class _CRC32Hash(object):
         return "{0:x}".format(crc32)
 
 
-def _hash_factory(hashtype):
+def _hash_factory(hash_name):
     """Return a hash object for the specified hash function."""
-    if hashtype.lower() == "crc32":
+    if hash_name.lower() == 'crc32':
         return _CRC32Hash()
     else:
-        return hashlib.new(hashtype)
+        return hashlib.new(hash_name)
 
 
 class Filehash(object):
@@ -104,15 +103,15 @@ class Filehash(object):
     local "hashlib" module, plus CRC32.
 
     """
-    def __init__(self, hashtype, filename):
-        h = _hash_factory(hashtype)
+    def __init__(self, hash_name, filename):
+        h = _hash_factory(hash_name)
         with open(filename, 'r') as file:
             chunk = file.read(h.block_size)
             while chunk:
                 h.update(chunk)
                 chunk = file.read(h.block_size)
         self._hash = h
-        self.hashtype = hashtype
+        self.hash_name = hash_name
 
     def hexdigest(self):
         """Return the files digest as a string of hexadecimal digits."""
@@ -161,20 +160,20 @@ class AbstractDirectoryCrawler(object, metaclass=abc.ABCMeta):
         self.include = include
         self.exclude = exclude
 
-    def _write_checksum_file(self, filename, hashinfo):
+    def _write_checkfile(self, filename, hashinfo):
         """Write files hashes to a checksum file.
 
         The hashinfo has to be provided as a nested list or tuple :
         [(filename1, hash1), ..., (filenameN, hashN)]
 
         """
-        ts = time.strftime("%Y-%m-%d %H:%M:%S")
+        ts = time.strftime('%Y-%m-%d %H:%M:%S')
         with open(filename, 'w') as file:
             file.write("# Generated on {0}".format(ts) + os.linesep)
             for filepath, hash in hashinfo:
                 file.write("{0} *{1}".format(hash, filepath) + os.linesep)
 
-    def _read_checksum_file(self, filename):
+    def _read_checkfile(self, filename):
         """Parse and return the content of a checksum file.
 
         The return value is a nested tuple of the following format:
@@ -205,7 +204,7 @@ class HashGenerator(AbstractDirectoryCrawler):
 
     The object supports the following arguments:
 
-        hashtype -- The name of a hash function. This can be any hash function
+        hash_name -- The name of a hash function. This can be any hash function
             supported by the hashlib module or 'crc32'.
 
         recursive -- Recursively process all subdirectories. Otherwise only the
@@ -218,7 +217,7 @@ class HashGenerator(AbstractDirectoryCrawler):
             the default behaviour.
 
         filename -- The filename given to the created hashfiles. If this is not
-            provided, a default ("checksums.<hashtype>") is used. This option
+            provided, a default ("checksums.<hashname>") is used. This option
             can be overridden by the "overwrite" argument.
 
         overwrite - A list of globs that specifies which files to overwrite.
@@ -240,27 +239,25 @@ class HashGenerator(AbstractDirectoryCrawler):
 
     Example:
 
-        >>> g = HashGenerator('sha256', recursive=True,
+        >>> g = HashGenerator('sha256', recursive=True, filename='dir.check',
                               include=['*'], exclude=['*.tmp', '*.bak'])
         >>> g.process_directory('/home/foo/bar')
 
     """
-    def __init__(self, hashtype, *,
+    def __init__(self, hash_name, *,
                  recursive=False, basedir_only=False, filename=None,
-                 overwrite=[], backup=False, include=[], exclude=[],
-                 console=Console(Console.ERROR)):
+                 overwrite=[], backup=False, include=[], exclude=[]):
         """Initialize a new HashGenerator with the given options."""
         super(HashGenerator, self).__init__(include=include, exclude=exclude)
-        self.hashtype = hashtype
+        self.hash_name = hash_name
         self.recursive = recursive
         self.basedir_only = basedir_only
         self.overwrite = overwrite
         self.backup = backup
-        self.console = console
         if filename:
             self.filename = filename
         else:
-            self.filename = "checksums" + "." + hashtype
+            self.filename = 'checksums' + '.' + hash_name
 
     def _write_hashinfo(self, directory, hashinfo):
         """Write files hashes to a directory.
@@ -288,27 +285,28 @@ class HashGenerator(AbstractDirectoryCrawler):
         for file in files_to_write:
             filepath = os.path.join(directory, file)
             if os.path.exists(filepath) and self.backup:
-                os.rename(filepath, filepath + ".bak")
-                self.console.info("Backing-up", filepath, "...")
-            self._write_checksum_file(filepath, hashinfo)
-            self.console.info("Checksum file", filepath, "generated.")
+                console.debug("Backing-up", filepath, "...")
+                os.rename(filepath, filepath + '.bak')
+            self._write_checkfile(filepath, hashinfo)
+            console.info("Checksum file", filepath, "created ...")
 
     def process_directory(self, root):
         """Generate checksum file(s) for a directory."""
         dirtree = os.walk(root, topdown=True)
         if not self.recursive:
-            dirtree = [next(dirtree)]
+            dirtree = [next(dirtree), ]
 
-        globfilter = GlobFilter(include=self.include, exclude=self.exclude)
         tree_hashes = []  # All hashes for files in the whole directory tree
+        is_relevant = GlobFilter(include=self.include, exclude=self.exclude)
         for dir, subdirs, subfiles in dirtree:
-            self.console.debug("Processing files in directory", dir, "...")
+            console.debug("Processing directory", dir, "...")
             dir_hashes = []  # All hashes for files in the current directory
-            for file in filter(globfilter, subfiles):
+            # Process all files as specified by "include" and "exclude"
+            for file in filter(is_relevant, subfiles):
                 filepath = os.path.join(dir, file)
-                hash = Filehash(filepath, self.hashtype).hexdigest()
-                self.console.debug(file, "->", hash)
-                # Store the files hash
+                hash = Filehash(self.hash_name, filepath).hexdigest()
+                console.debug(hash, "->", filepath)
+                # Store the files hash for later use
                 dir_hashes.append((file, hash))
                 tree_hashes.append((os.path.relpath(filepath, root), hash))
             if dir_hashes and not self.basedir_only:
@@ -322,13 +320,15 @@ class HashVerifier(AbstractDirectoryCrawler):
 
     The object supports the following arguments:
 
-        hashtype -- The name of a hash function. This can be any hash function
+        hash_name -- The name of a hash function. This can be any hash function
             supported by the hashlib module or 'crc32'.
 
         recursive -- Recursively process all subdirectories. Otherwise only the
             base directory is processed.
 
-        filenames -- The filename for created hashfiles. If none is specified
+        checkfiles -- A list of globs. Any files matching one of these globs
+            will be regarded as checksum files and be verified. If this list is
+            empty the default glob is "*.<hashname>".
 
         include -- A list of globs. Hashes will only be verified for files that
             match any of the globs in this list. If this list is empty, all
@@ -344,62 +344,62 @@ class HashVerifier(AbstractDirectoryCrawler):
 
     Example:
 
-        >>> v = HashVerifier('md5', recursive=True, filenames=["*.md5"],
+        >>> v = HashVerifier('md5', recursive=True, checkfiles=['*.md5'],
                              include=['*'], exclude=['*.tmp', '*.bak'])
         >>> v.process_directory('/home/foo/bar')
 
     """
-    def __init__(self, hashtype, *,
-                 recursive=False, filenames=[], include=[], exclude=[],
-                 console=Console(Console.ERROR)):
+    def __init__(self, hash_name, *,
+                 recursive=False, checkfiles=[], include=[], exclude=[]):
         """Initialize a new HashVerifier with the given options."""
         super(HashVerifier, self).__init__(include=include, exclude=exclude)
-        self.hashtype = hashtype
+        self.hash_name = hash_name
         self.recursive = recursive
-        self.console = console
-        if filenames:
-            self.filenames = filenames
+        if checkfiles:
+            self.checkfiles = checkfiles
         else:
-            self.filenames = ["*." + hashtype, ]
+            self.checkfiles = ['*.' + hash_name, ]
 
     def process_directory(self, root) :
         dirtree = os.walk(root, topdown=True)
         if not self.recursive:
-            dirtree = [next(dirtree)]
+            dirtree = [next(dirtree), ]
 
-        globfilter = GlobFilter(include=self.include, exclude=self.exclude)
-        checksum_file_filter = GlobFilter(include=self.filenames)
+        is_checkfile = GlobFilter(include=self.checkfiles)
+        is_relevant = GlobFilter(include=self.include, exclude=self.exclude)
         for dir, subdirs, subfiles in dirtree:
-            self.console.debug("Processing files in directory", dir, "...")
-            for file in filter(checksum_file_filter, subfiles):
-                file_ok = True
-                filepath = os.path.join(dir, file)
-                self.console.debug("Verifying file", filepath, "...")
-                hashinfo = self._read_checksum_file(filepath)
-                # Check each entry in the hashfile
-                for fn, hash in hashinfo:
-                    fnpath = os.path.join(dir, fn)
-                    if not globfilter(os.path.basename(fn)):
-                        # Skip verifying any unwanted files
-                        self.console.debug("[SKIPPED]", fnpath)
+            console.debug("Processing directory", dir, "...")
+            for checkfile in filter(is_checkfile, subfiles):
+                checkfile_ok = True
+                checkfile_path = os.path.join(dir, checkfile)
+                console.debug("Verifying file", checkfile_path, "...")
+                hashinfo = self._read_checksum_file(checkfile_path)
+                # Check each entry in the checksum file
+                for hashfile, hash_stored in hashinfo:
+                    hashfile_path = os.path.join(dir, hashfile)
+                    if not is_relevant(os.path.basename(hashfile_path)):
+                        # Skip verifying any unwanted files as specified by the
+                        # include and exclude parameters.
+                        console.debug("[SKIPPED]", hashfile_path)
                         continue
-                    if not os.path.isfile(fnpath):
-                        file_ok = False
-                        self.console.error("[MISSING]", fnpath)
+                    if not os.path.isfile(hashfile_path):
+                        checkfile_ok = False
+                        console.error("[MISSING]", hashfile_path)
                         continue
-                    hash = Filehash(fnpath, self.hashtype).hexdigest()
-                    if hash.lower() != hash.lower():
-                        file_ok = False
-                        self.console.warning("[INVALID]", fnpath)
+                    hash_now = Filehash(self.hash_name,
+                                        hashfile_path).hexdigest()
+                    if hash_now.lower() != hash_stored.lower():
+                        checkfile_ok = False
+                        console.error("[INVALID]", hashfile_path)
                     else:
-                        self.console.debug("[OK]", fnpath)
-                if not file_ok:
-                    self.console.error(filepath, ": ERROR!")
+                        console.debug("[OK]", hashfile_path)
+                if not checkfile_ok:
+                    console.error(checkfile_path, ": ERROR!")
                 else:
-                    self.console.info(filepath, ": OK")
+                    console.info(checkfile_path, ": OK")
 
 
-class UncheckedCrawler(AbstractDirectoryCrawler):
+class UncheckedFileFinder(AbstractDirectoryCrawler):
     """Search for files that are not referenced in a checksum file.
 
     The object supports the following arguments:
@@ -407,7 +407,9 @@ class UncheckedCrawler(AbstractDirectoryCrawler):
         recursive -- Recursively process all subdirectories. Otherwise only the
             base directory is processed.
 
-        fileglob -- The filename for created hashfiles. If none is specified
+        checkfiles -- A list of globs. Any files matching one of these globs
+            will be regarded as checksum files and be parsed. The arguement is
+            mandatory.
 
         include -- A list of globs. Hashes will only be verified for files that
             match any of the globs in this list. If this list is empty, all
@@ -422,95 +424,98 @@ class UncheckedCrawler(AbstractDirectoryCrawler):
 
     Example:
 
-        >>> u = UncheckedCrawler(filenames=["*.md5"], 'recursive=True,
-                                 include=['*'], exclude=['*.tmp', '*.bak'])
+        >>> u = UncheckedCrawler(checkfiles=['*.md5', 'check*.sfv'], 
+                                 recursive=True, exclude=['*.tmp', '*.bak'])
         >>> u.process_directory('/home/foo/bar')
 
     """
     def __init__(self, *,
-                 filenames, recursive=False, include=None, exclude=None,
-                 console=Console(Console.ERROR)):
+                 checkfiles, recursive=False, include=None, exclude=None):
         """Initialize a new UncheckedCrawler with the given options."""
         super(UncheckedCrawler, self).__init__(include=include,
                                                exclude=exclude)
         self.recursive = recursive
-        self.filenames = filename
-        self.console = console
+        self.checkfiles = checkfiles
 
     def process_directory(self, root) :
         dirtree = os.walk(root, topdown=True)
         if not self.recursive:
-            dirtree = [next(dirtree)]
+            dirtree = [next(dirtree), ]
 
         hashed_files = []
-        globfilter = GlobFilter(include=self.include, exclude=self.exclude)
-        checksum_file_filter = GlobFilter(include=self.filenames)
+        is_checkfile = GlobFilter(include=self.checkfiles)
+        is_relevant = GlobFilter(include=self.include, exclude=self.exclude)
         for dir, subdirs, subfiles in dirtree:
-            self.console.debug("Processing files in directory", dir, "...")
-            # Find all hashfiles in the current directory
-            for file in filter(checksum_file_filter, subfiles):
+            console.debug("Processing directory", dir, "...")
+            # Find all checksum files in the current directory and add all
+            # file they contain to the "hashed_files" list.
+            for checkfile in filter(is_checkfile, subfiles):
+                checkfile_path = os.path.join(dir, checkfile)
+                console.debug("Reading file", checkfile_path, "...")
+                hashinfo = self._read_hashfile(checkfile_path)
+                for file, _ in hashinfo:
+                    hashed_files.append(os.path.join(dir, file))
+            # Find all relevant files in the current directory and check if any
+            # checksum file contained a hash for the file.
+            for file in filter(is_relevant, subfiles):
                 filepath = os.path.join(dir, file)
-                hashinfo = self._read_hashfile(filepath)
-                for fn, hash in hashinfo:
-                    hashed_files.append(os.path.join(dir, fn))
-            # Check if there's a hash for all files
-            for file in filter(globfilter, subfiles):
-                filepath = os.path.join(dir, file)
-                if filepath not in treehashinfo:
-                    self.console.warning("[UNCHECKED]", file)
+                if filepath not in hashed_files:
+                    console.warning("[UNCHECKED]", filepath)
+                else:
+                    console.debug("[OK]", filepath)
 
 
 def parse_arguments():
     valid_hash_functions = (
-        "md5", "sha1", "sha224", "sha256", "sha384", "sha512", "crc32"
+        'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'crc32'
     )
 
-    # Construct the base parser to which all suparsers are added.
+    # The arguments of the base parser
     root_parser_arguments = (
         ('-v', '--verbose',
             {'dest': 'verbose',
              'action': 'store_true',
-             'help': "Be chatty and print verbose information."}),
+             'help': """Be chatty and print verbose information."""}),
         ('-d', '--debug',
             {'dest': 'debug',
              'action': 'store_true',
-             'help': "Be very chatty and print debug information."}),
+             'help': """Be very chatty and print debug information."""}),
         ('-q', '--quiet',
             {'dest': 'quiet',
              'action': 'store_true',
-             'help': "Supress all output except error messages."}),
+             'help': """Supress all output except error messages."""}),
         ('--version',
             {'action': 'version',
              'version': __version__,
-             'help': "Print version information and exit."})
+             'help': """Print version information and exit."""})
     )
 
-    # Defines the possible arguments for the "generate" parser
+    # The arguments of the "generate" subparser
     generate_parser_arguments = (
-    	("hashtype",
-    	    {'choices': valid_hash_functions,
-    	     'metavar': 'HASHTYPE',
-    	     'help': 'The hash function to be used.'}),
-    	("-r", "--recursive",
+        ('hash_name',
+            {'choices': valid_hash_functions,
+             'metavar': 'HASHNAME',
+             'help': """The hash function to be used."""}),
+        ('-r', '--recursive',
             {'dest': 'recursive',
              'action': 'store_true',
-             'help': 'Recursively process any subdirectories.'}),
-        ("-b", "--basedir",
-    	    {'dest': 'basedir_only',
-    	     'action': 'store_true',
+             'help': """Recursively process any subdirectories."""}),
+        ('-b', '--basedir',
+            {'dest': 'basedir_only',
+             'action': 'store_true',
              'help': """Create only one single checksum file in the base
                      directory. Otherwise the default is to create a distinct
                      checksum file for each directory. This option is only
                      meaningful if recursion is enabled."""}),
-    	("-f", "--filename",
+        ('-f', '--filename',
             {'dest': 'filename',
              'metavar': 'NAME',
              'help': """The filename given to the created checksum files.
                      This can be overridden by the "--overwrite" argument.
                      If this argument is missing, the default value
-                     "checksums.<hashtype>" (e.g. "checksums.sha256") is
+                     "checksums.<hashname>" (e.g. "checksums.sha256") is
                      used."""}),
-    	("-o", "--overwrite",
+        ('-o', '--overwrite',
             {'dest': 'overwrite_globs',
              'action': 'append',
              'metavar': 'GLOB',
@@ -519,11 +524,11 @@ def parse_arguments():
                      replace existing checksum files with a new version.
                      If this argument is missing or no matching file is found
                      the value specified in "--filename" is used."""}),
-    	("-n", "--no-backup",
+        ('-n', '--no-backup',
             {'dest': 'backup',
              'action': 'store_false',
              'help': """Do not back up files before overwriting them."""}),
-        ("-i", "--include",
+        ('-i', '--include',
             {'dest': 'include_globs',
              'action': 'append',
              'metavar': 'GLOB',
@@ -531,49 +536,37 @@ def parse_arguments():
                      glob. This may be supplied multiple times. If this is not
                      specified include all files (same behaviour as
                      --include "*")."""}),
-        ("-e", "--exclude",
+        ('-e', '--exclude',
             {'dest': 'exclude_globs',
              'action': 'append',
              'metavar': 'GLOB',
              'help': """Do not store a files hash if the filename matches this
                      glob. This may be supplied multiple times."""}),
-    	("directories",
-    	    {'nargs': '+',
-    	     'metavar': 'DIRECTORY',
-    	     'help': 'The directory to process.'})
+        ("directories",
+            {'nargs': '+',
+             'metavar': 'DIRECTORY',
+             'help': """The directory to process."""})
     )
 
+    # The arguments of the "verify" subparser
     verify_parser_arguments = (
-    	("hashtype",
-    	    {'choices': valid_hash_functions,
-    	     'metavar': 'HASHTYPE',
-    	     'help': 'The hash function to be used.'}),
-    	("-r", "--recursive",
+        ('hash_name',
+            {'choices': valid_hash_functions,
+             'metavar': 'HASHNAME',
+             'help': """The hash function to be used."""}),
+        ('-r', '--recursive',
             {'dest': 'recursive',
              'action': 'store_true',
-             'help': 'Recursively process any subdirectories.'}),
-    	("-f", "--filename",
-            {'dest': 'filename',
+             'help': """Recursively process any subdirectories."""}),
+        ('-f', '--filename',
+            {'dest': 'filename_globs',
              'action': 'append',
              'metavar': 'GLOB',
              'help': """Treat any file matching this glob as a checksum file
                      and attempt to verify it. This may be supplied multiple
                      times. If this argument is missing, the default value
-                     "*.<hashtype>" (e.g. "*.sha256") is used."""}),
-    	("-o", "--overwrite",
-            {'dest': 'overwrite_globs',
-             'action': 'append',
-             'metavar': 'GLOB',
-             'help': """Overwrite any files matching this glob with the content
-                     of the generated checksum file. This can be used to
-                     replace existing checksum files with a new version. If
-                     this argument is missing or no matching file is found the
-                     value specified in "--filename" is used."""}),
-    	("-n", "--no-backup",
-            {'dest': 'backup',
-             'action': 'store_false',
-             'help': """Do not back up files before overwriting them."""}),
-        ("-i", "--include",
+                     "*.<hashname>" (e.g. "*.sha256") is used."""}),
+        ('-i', '--include',
             {'dest': 'include_globs',
              'action': 'append',
              'metavar': 'GLOB',
@@ -581,49 +574,33 @@ def parse_arguments():
                      glob. This may be supplied multiple times. If this is not
                      specified all files will be verified (same behaviour
                      as --include "*")."""}),
-        ("-e", "--exclude",
+        ('-e', '--exclude',
             {'dest': 'exclude_globs',
              'action': 'append',
              'metavar': 'GLOB',
              'help': """Do not verify a files hash if the filename matches this
                      glob. This may be supplied multiple times."""}),
-    	("directories",
-    	    {'nargs': '+',
-    	     'metavar': 'DIRECTORY',
-    	     'help': 'The directory to process.'})
+        ('directories',
+            {'nargs': '+',
+             'metavar': 'DIRECTORY',
+             'help': """The directory to process."""})
     )
 
+    # The arguments of the "unchecked" subparser
     unchecked_parser_arguments = (
-    	("hashtype",
-    	    {'choices': valid_hash_functions,
-    	     'metavar': 'HASHTYPE',
-    	     'help': 'The hash function to be used.'}),
-    	("-r", "--recursive",
+        ('-r', '--recursive',
             {'dest': 'recursive',
              'action': 'store_true',
-             'help': 'Recursively process any subdirectories.'}),
-    	("-f", "--filename",
-            {'dest': 'filename',
+             'help': """Recursively process any subdirectories."""}),
+        ('-f', '--filename',
+            {'dest': 'filename_globs',
              'action': 'append',
              'required': True,
              'metavar': 'GLOB',
              'help': """Treat any file matching this glob as a checksum file
                      and attempt to parse it. This may be supplied multiple
                      times."""}),
-    	("-o", "--overwrite",
-            {'dest': 'overwrite_globs',
-             'action': 'append',
-             'metavar': 'GLOB',
-             'help': """Overwrite any files matching this glob with the content
-                     of the generated checksum file. This can be used to
-                     replace existing checksum files with a new version. If
-                     this argument is missing or no matching file is found the
-                     value specified in "--filename" is used."""}),
-    	("-n", "--no-backup",
-            {'dest': 'backup',
-             'action': 'store_false',
-             'help': """Do not back up files before overwriting them."""}),
-        ("-i", "--include",
+        ('-i', '--include',
             {'dest': 'include_globs',
              'action': 'append',
              'metavar': 'GLOB',
@@ -631,53 +608,56 @@ def parse_arguments():
                      glob. This may be supplied multiple times. If this is not
                      specified all files with no hash will be reported (same
                      behaviour as --include "*")."""}),
-        ("-e", "--exclude",
+        ('-e', '--exclude',
             {'dest': 'exclude_globs',
              'action': 'append',
              'metavar': 'GLOB',
              'help': """Do not warn about files if the filename matches this
                      glob. This may be supplied multiple times."""}),
-    	("directories",
-    	    {'nargs': '+',
-    	     'metavar': 'DIRECTORY',
-    	     'help': 'The directory to process.'})
+        ('directories',
+            {'nargs': '+',
+             'metavar': 'DIRECTORY',
+             'help': """The directory to process."""})
     )
 
-    # Create the root parser
+    # Create the root parser with the arguments defined above.
     root_parser = argparse.ArgumentParser(
         description=__doc__,
         epilog="(c) {}".format(__author__))
+    for *flags, kwargs in root_parser_arguments:
+        root_parser.add_argument(*flags, **kwargs)
+
+    # Create the subparsers with the arguments defined above.
     subparsers = root_parser.add_subparsers(
         dest='operation',
         help='Specifies what task to perform')
-    for *flags, kwargs in root_parser_arguments:
-        root_parser.add_argument(*flags, **kwargs)
-    # Create the subparser for the "generate" option
-    help = """Scan a directory for files, calculate a hash for each file and
-           store it in a checksum file."""
-    generate_parser = subparsers.add_parser('generate', help=help)
+
+    help_text = """Scan a directory for files, calculate a hash for each file
+                and store it in a checksum file."""
+    generate_parser = subparsers.add_parser('generate', help=help_text)
     for *flags, kwargs in generate_parser_arguments:
         generate_parser.add_argument(*flags, **kwargs)
-    # Create the subparser for the "verify" option
-    help = """Scan a directory for checksum files and verify the hashes
-           within these files."""
-    verify_parser = subparsers.add_parser('verify', help=help)
+
+    help_text = """Scan a directory for checksum files and verify the hashes
+                within these files."""
+    verify_parser = subparsers.add_parser('verify', help=help_text)
     for *flags, kwargs in verify_parser_arguments:
         verify_parser.add_argument(*flags, **kwargs)
-    # Create the subparser for the "unchecked" option
-    help = """Scan a directory for files that are not included in a
-           checksum file."""
-    uncheck_parser = subparsers.add_parser('unchecked', help=help)
-    for *flags, kwargs in unchecked_parser_arguments:
-        uncheck_parser.add_argument(*flags, **kwargs)
 
+    help_text = """Scan a directory for files that are not included in a
+                checksum file."""
+    unchecked_parser = subparsers.add_parser('unchecked', help=help_text)
+    for *flags, kwargs in unchecked_parser_arguments:
+        unchecked_parser.add_argument(*flags, **kwargs)
+
+    # Parse and return the command-line arguments
     return root_parser.parse_args()
 
 
 def hashtool():
-    """Parse the command-line options and run the requested operations."""
+    """Parse the command-line options and run the requested operation."""
     args = parse_arguments()
-    print(args)
+    # print(args)
 
     console.level = Console.WARNING
     if args.verbose:
@@ -688,30 +668,31 @@ def hashtool():
         console.level = Console.QUIET
 
     if args.operation == 'generate':
-        processor = HashGenerator(
-            args.hash_function, recursive=args.recursive, basedir=args.basedir,
-            filename=args.filename, overwrite=args.overwrite,
-            backup=args.backup, include=args.include, exclude=args.exclude,
-            console=console
-        )
+        crawler = HashGenerator(args.hash_name,
+                                recursive=args.recursive,
+                                basedir_only=args.basedir_only,
+                                filename=args.filename,
+                                overwrite=args.overwrite_globs,
+                                backup=args.backup,
+                                include=args.include_globs,
+                                exclude=args.exclude_globs)
     elif args.operation == 'verify':
-        processor = HashVerifier(
-            args.hash_function, recursive=args.recursive,
-            filename=args.filename, include=args.include, exclude=args.exclude,
-            console=console
-        )
+        crawler = HashVerifier(args.hash_name,
+                               recursive=args.recursive,
+                               checkfiles=args.filename_globs,
+                               include=args.include_globs,
+                               exclude=args.exclude_globs)
     elif args.operation == 'unchecked':
-        processor = UncheckedCrawler(
-            recursive=args.recursive, filename=args.filename,
-            include=args.include, exclude=args.exclude, console=console
-        )
+        crawler = UncheckedFileFinder(recursive=args.recursive,
+                                      checkfiles=args.filename_globs,
+                                      include=args.include_globs,
+                                      exclude=args.exclude_globs)
     else:
         raise ValueError('Unknown operation: {}'.format(args.operation))
 
     for directory in args.directories:
-        processor.process_directory(directory)
+        crawler.process_directory(directory)
 
 
 if __name__ == '__main__':
     hashtool()
-
