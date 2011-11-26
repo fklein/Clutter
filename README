@@ -1,0 +1,10 @@
+This repository contains miscellaneous Python scripts that serve no particular
+purpose:
+
+    tictactoe.py -- A module that implements the Paper and pencil game
+        Tic-tac-toe. The module includes the basic game mechanics and a
+        computer controlled player. It can either be imported to create
+        a custom version of the game or be run as a standalone script,
+        in which case it will run a console based version of the game.
+
+        
