@@ -478,19 +478,19 @@ def parse_arguments():
         ('-v', '--verbose',
             {'dest': 'verbose',
              'action': 'store_true',
-             'help': """Be chatty and print verbose information."""}),
+             'help': """be chatty and print verbose information"""}),
         ('-d', '--debug',
             {'dest': 'debug',
              'action': 'store_true',
-             'help': """Be very chatty and print debug information."""}),
+             'help': """be very chatty and print debug information"""}),
         ('-q', '--quiet',
             {'dest': 'quiet',
              'action': 'store_true',
-             'help': """Supress all output except error messages."""}),
+             'help': """supress all output except error messages"""}),
         ('--version',
             {'action': 'version',
              'version': __version__,
-             'help': """Print version information and exit."""})
+             'help': """print version information and exit"""})
     )
 
     # The arguments of the "generate" subparser
@@ -498,60 +498,60 @@ def parse_arguments():
         ('hash_name',
             {'choices': valid_hash_functions,
              'metavar': 'HASHNAME',
-             'help': """The hash function to be used."""}),
+             'help': """the hash function to be used"""}),
         ('-r', '--recursive',
             {'dest': 'recursive',
              'action': 'store_true',
-             'help': """Recursively process any subdirectories."""}),
+             'help': """recursively process any subdirectories"""}),
         ('-b', '--basedir',
             {'dest': 'basedir_only',
              'action': 'store_true',
-             'help': """Create only one single checksum file in the base
-                     directory. Otherwise the default is to create a distinct
-                     checksum file for each directory. This option is only
-                     meaningful if recursion is enabled."""}),
+             'help': """create only one single checksum file in the base
+                     directory; otherwise the default is to create a distinct
+                     checksum file for each directory; this option is only
+                     meaningful if recursion is enabled"""}),
         ('-f', '--filename',
             {'dest': 'filename',
              'metavar': 'NAME',
-             'help': """The filename given to the created checksum files.
-                     This can be overridden by the "--overwrite" argument.
-                     If this argument is missing, the default value
+             'help': """the filename given to the created checksum files;
+                     this can be overridden by the "--overwrite" argument;
+                     if this argument is missing, the default value
                      "checksums.<hashname>" (e.g. "checksums.sha256") is
-                     used."""}),
+                     used"""}),
         ('-o', '--overwrite',
             {'dest': 'overwrite_globs',
              'action': 'append',
              'default': [],
              'metavar': 'GLOB',
-             'help': """Overwrite any files matching this glob with the content
-                     of the generated checksum file. This can be used to
-                     replace existing checksum files with a new version.
-                     If this argument is missing or no matching file is found
-                     the value specified in "--filename" is used."""}),
+             'help': """overwrite any files matching this glob with the content
+                     of the generated checksum file; this can be used to
+                     replace existing checksum files with a new version;
+                     if this argument is missing or no matching file is found
+                     the value specified in "--filename" is used"""}),
         ('-n', '--no-backup',
             {'dest': 'backup',
              'action': 'store_false',
-             'help': """Do not back up files before overwriting them."""}),
+             'help': """do not back up files before overwriting them"""}),
         ('-i', '--include',
             {'dest': 'include_globs',
              'action': 'append',
              'default': [],
              'metavar': 'GLOB',
-             'help': """Only store a files hash if the filename matches this
-                     glob. This may be supplied multiple times. If this is not
+             'help': """only store a files hash if the filename matches this
+                     glob; this may be supplied multiple times; if this is not
                      specified include all files (same behaviour as
-                     --include "*")."""}),
+                     --include '*')"""}),
         ('-e', '--exclude',
             {'dest': 'exclude_globs',
              'action': 'append',
              'default': [],
              'metavar': 'GLOB',
-             'help': """Do not store a files hash if the filename matches this
-                     glob. This may be supplied multiple times."""}),
+             'help': """do not store a files hash if the filename matches this
+                     glob; this may be supplied multiple times"""}),
         ("directories",
             {'nargs': '+',
              'metavar': 'DIRECTORY',
-             'help': """The directory to process."""})
+             'help': """the directory to process"""})
     )
 
     # The arguments of the "verify" subparser
@@ -559,40 +559,40 @@ def parse_arguments():
         ('hash_name',
             {'choices': valid_hash_functions,
              'metavar': 'HASHNAME',
-             'help': """The hash function to be used."""}),
+             'help': """the hash function to be used"""}),
         ('-r', '--recursive',
             {'dest': 'recursive',
              'action': 'store_true',
-             'help': """Recursively process any subdirectories."""}),
+             'help': """recursively process any subdirectories"""}),
         ('-f', '--filename',
             {'dest': 'filename_globs',
              'action': 'append',
              'default': [],
              'metavar': 'GLOB',
-             'help': """Treat any file matching this glob as a checksum file
-                     and attempt to verify it. This may be supplied multiple
-                     times. If this argument is missing, the default value
-                     "*.<hashname>" (e.g. "*.sha256") is used."""}),
+             'help': """treat any file matching this glob as a checksum file
+                     and attempt to verify it; this may be supplied multiple
+                     times; if this argument is missing, the default value
+                     "*.<hashname>" (e.g. "*.sha256") is used"""}),
         ('-i', '--include',
             {'dest': 'include_globs',
              'action': 'append',
              'default': [],
              'metavar': 'GLOB',
-             'help': """Only verify a files hash if the filename matches this
-                     glob. This may be supplied multiple times. If this is not
+             'help': """only verify a files hash if the filename matches this
+                     glob; this may be supplied multiple times; if this is not
                      specified all files will be verified (same behaviour
-                     as --include "*")."""}),
+                     as --include '*')"""}),
         ('-e', '--exclude',
             {'dest': 'exclude_globs',
              'action': 'append',
              'default': [],
              'metavar': 'GLOB',
-             'help': """Do not verify a files hash if the filename matches this
-                     glob. This may be supplied multiple times."""}),
+             'help': """do not verify a files hash if the filename matches this
+                     glob; this may be supplied multiple times"""}),
         ('directories',
             {'nargs': '+',
              'metavar': 'DIRECTORY',
-             'help': """The directory to process."""})
+             'help': """the directory to process"""})
     )
 
     # The arguments of the "unchecked" subparser
@@ -600,36 +600,36 @@ def parse_arguments():
         ('-r', '--recursive',
             {'dest': 'recursive',
              'action': 'store_true',
-             'help': """Recursively process any subdirectories."""}),
+             'help': """recursively process any subdirectories"""}),
         ('-f', '--filename',
             {'dest': 'filename_globs',
              'action': 'append',
              'default': [],
              'required': True,
              'metavar': 'GLOB',
-             'help': """Treat any file matching this glob as a checksum file
-                     and attempt to parse it. This may be supplied multiple
-                     times."""}),
+             'help': """treat any file matching this glob as a checksum file
+                     and attempt to parse it; this may be supplied multiple
+                     times"""}),
         ('-i', '--include',
             {'dest': 'include_globs',
              'action': 'append',
              'default': [],
              'metavar': 'GLOB',
-             'help': """Only warn about files if the filename matches this
-                     glob. This may be supplied multiple times. If this is not
+             'help': """only warn about files if the filename matches this
+                     glob; this may be supplied multiple times; if this is not
                      specified all files with no hash will be reported (same
-                     behaviour as --include "*")."""}),
+                     behaviour as --include '*')"""}),
         ('-e', '--exclude',
             {'dest': 'exclude_globs',
              'action': 'append',
              'default': [],
              'metavar': 'GLOB',
-             'help': """Do not warn about files if the filename matches this
-                     glob. This may be supplied multiple times."""}),
+             'help': """do not warn about files if the filename matches this
+                     glob; this may be supplied multiple times"""}),
         ('directories',
             {'nargs': '+',
              'metavar': 'DIRECTORY',
-             'help': """The directory to process."""})
+             'help': """the directory to process"""})
     )
 
     # Create the root parser with the arguments defined above.
@@ -642,22 +642,22 @@ def parse_arguments():
     # Create the subparsers with the arguments defined above.
     subparsers = root_parser.add_subparsers(
         dest='operation',
-        help='Specifies what task to perform')
+        help='specifies what task to perform')
 
-    help_text = """Scan a directory for files, calculate a hash for each file
-                and store it in a checksum file."""
+    help_text = """scan a directory for files, calculate a hash for each file
+                and store them in a checksum file"""
     generate_parser = subparsers.add_parser('generate', help=help_text)
     for *flags, kwargs in generate_parser_arguments:
         generate_parser.add_argument(*flags, **kwargs)
 
-    help_text = """Scan a directory for checksum files and verify the hashes
-                within these files."""
+    help_text = """scan a directory for checksum files and verify the hashes
+                within them"""
     verify_parser = subparsers.add_parser('verify', help=help_text)
     for *flags, kwargs in verify_parser_arguments:
         verify_parser.add_argument(*flags, **kwargs)
 
-    help_text = """Scan a directory for files that are not included in a
-                checksum file."""
+    help_text = """scan a directory for files that are not included in a
+                checksum file"""
     unchecked_parser = subparsers.add_parser('unchecked', help=help_text)
     for *flags, kwargs in unchecked_parser_arguments:
         unchecked_parser.add_argument(*flags, **kwargs)
