@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 __author__ = "Florian Klein <fklein-at-lavabit-dot-com>"
-__version__ = "0.2.0 alpha"
+__version__ = "1.0.0"
 __doc__ = "A command-line tool for generating and verifying file hashes."
 
 import hashlib
@@ -108,6 +108,8 @@ class Filehash(object):
         with open(filename, 'r') as file:
             chunk = file.read(h.block_size)
             while chunk:
+                if hasattr(chunk, 'encode'):
+                    chunk = chunk.encode()
                 h.update(chunk)
                 chunk = file.read(h.block_size)
         self._hash = h
@@ -137,9 +139,10 @@ class GlobFilter(object):
         be excluded.
 
         """
-        for glob in self.exclude:
-            if fnmatch.fnmatch(string, glob):
-                return False
+        if self.exclude:
+            for glob in self.exclude:
+                if fnmatch.fnmatch(string, glob):
+                    return False
         if not self.include:
             return True
         for glob in self.include:
@@ -373,7 +376,7 @@ class HashVerifier(AbstractDirectoryCrawler):
                 checkfile_ok = True
                 checkfile_path = os.path.join(dir, checkfile)
                 console.debug("Verifying file", checkfile_path, "...")
-                hashinfo = self._read_checksum_file(checkfile_path)
+                hashinfo = self._read_checkfile(checkfile_path)
                 # Check each entry in the checksum file
                 for hashfile, hash_stored in hashinfo:
                     hashfile_path = os.path.join(dir, hashfile)
@@ -424,16 +427,16 @@ class UncheckedFileFinder(AbstractDirectoryCrawler):
 
     Example:
 
-        >>> u = UncheckedCrawler(checkfiles=['*.md5', 'check*.sfv'], 
-                                 recursive=True, exclude=['*.tmp', '*.bak'])
+        >>> u = UncheckedFileFinder(checkfiles=['*.md5', 'check*.sfv'], 
+                                    recursive=True, exclude=['*.tmp', '*.bak'])
         >>> u.process_directory('/home/foo/bar')
 
     """
     def __init__(self, *,
                  checkfiles, recursive=False, include=None, exclude=None):
-        """Initialize a new UncheckedCrawler with the given options."""
-        super(UncheckedCrawler, self).__init__(include=include,
-                                               exclude=exclude)
+        """Initialize a new UncheckedFileFinder with the given options."""
+        super(UncheckedFileFinder, self).__init__(include=include,
+                                                  exclude=exclude)
         self.recursive = recursive
         self.checkfiles = checkfiles
 
@@ -452,7 +455,7 @@ class UncheckedFileFinder(AbstractDirectoryCrawler):
             for checkfile in filter(is_checkfile, subfiles):
                 checkfile_path = os.path.join(dir, checkfile)
                 console.debug("Reading file", checkfile_path, "...")
-                hashinfo = self._read_hashfile(checkfile_path)
+                hashinfo = self._read_checkfile(checkfile_path)
                 for file, _ in hashinfo:
                     hashed_files.append(os.path.join(dir, file))
             # Find all relevant files in the current directory and check if any
@@ -518,6 +521,7 @@ def parse_arguments():
         ('-o', '--overwrite',
             {'dest': 'overwrite_globs',
              'action': 'append',
+             'default': [],
              'metavar': 'GLOB',
              'help': """Overwrite any files matching this glob with the content
                      of the generated checksum file. This can be used to
@@ -531,6 +535,7 @@ def parse_arguments():
         ('-i', '--include',
             {'dest': 'include_globs',
              'action': 'append',
+             'default': [],
              'metavar': 'GLOB',
              'help': """Only store a files hash if the filename matches this
                      glob. This may be supplied multiple times. If this is not
@@ -539,6 +544,7 @@ def parse_arguments():
         ('-e', '--exclude',
             {'dest': 'exclude_globs',
              'action': 'append',
+             'default': [],
              'metavar': 'GLOB',
              'help': """Do not store a files hash if the filename matches this
                      glob. This may be supplied multiple times."""}),
@@ -561,6 +567,7 @@ def parse_arguments():
         ('-f', '--filename',
             {'dest': 'filename_globs',
              'action': 'append',
+             'default': [],
              'metavar': 'GLOB',
              'help': """Treat any file matching this glob as a checksum file
                      and attempt to verify it. This may be supplied multiple
@@ -569,6 +576,7 @@ def parse_arguments():
         ('-i', '--include',
             {'dest': 'include_globs',
              'action': 'append',
+             'default': [],
              'metavar': 'GLOB',
              'help': """Only verify a files hash if the filename matches this
                      glob. This may be supplied multiple times. If this is not
@@ -577,6 +585,7 @@ def parse_arguments():
         ('-e', '--exclude',
             {'dest': 'exclude_globs',
              'action': 'append',
+             'default': [],
              'metavar': 'GLOB',
              'help': """Do not verify a files hash if the filename matches this
                      glob. This may be supplied multiple times."""}),
@@ -595,6 +604,7 @@ def parse_arguments():
         ('-f', '--filename',
             {'dest': 'filename_globs',
              'action': 'append',
+             'default': [],
              'required': True,
              'metavar': 'GLOB',
              'help': """Treat any file matching this glob as a checksum file
@@ -603,6 +613,7 @@ def parse_arguments():
         ('-i', '--include',
             {'dest': 'include_globs',
              'action': 'append',
+             'default': [],
              'metavar': 'GLOB',
              'help': """Only warn about files if the filename matches this
                      glob. This may be supplied multiple times. If this is not
@@ -611,6 +622,7 @@ def parse_arguments():
         ('-e', '--exclude',
             {'dest': 'exclude_globs',
              'action': 'append',
+             'default': [],
              'metavar': 'GLOB',
              'help': """Do not warn about files if the filename matches this
                      glob. This may be supplied multiple times."""}),
