@@ -105,7 +105,7 @@ class Filehash(object):
     """
     def __init__(self, hash_name, filename):
         h = _hash_factory(hash_name)
-        with open(filename, 'r') as file:
+        with open(filename, 'rb') as file:
             chunk = file.read(h.block_size)
             while chunk:
                 if hasattr(chunk, 'encode'):
