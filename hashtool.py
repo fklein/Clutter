@@ -277,6 +277,7 @@ class HashGenerator(AbstractDirectoryCrawler):
 
         """
         files_to_write = []
+        hashinfo = sorted(hashinfo, key=lambda fh: fh[0])  # Sort by filename
 
         for glob in self.overwrite:
             matching_items = fnmatch.filter(os.listdir(directory), glob)
